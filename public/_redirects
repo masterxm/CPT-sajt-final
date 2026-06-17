@@ -1,0 +1,8 @@
+/news/n1/*        https://n1info.rs/:splat        200
+/news/blic/*      https://www.blic.rs/:splat      200
+/news/telegraf/*  https://www.telegraf.rs/:splat  200
+/news/novosti/*   https://www.novosti.rs/:splat   200
+/news/kurir/*     https://www.kurir.rs/:splat     200
+/news/rts/*       https://www.rts.rs/:splat       200
+/news/b92/*       https://www.b92.net/:splat       200
+/news/naslovi/*   https://naslovi.net/:splat       200
