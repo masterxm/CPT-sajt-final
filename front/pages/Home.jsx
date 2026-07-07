@@ -295,7 +295,7 @@ export default function Home() {
                   <ChevronDown size={15} />
                 </motion.span>
               </motion.button>
-              <a href="#contact">
+              <Link to="/contact">
                 <motion.span
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.97 }}
@@ -309,7 +309,7 @@ export default function Home() {
                 >
                   Get in Touch
                 </motion.span>
-              </a>
+              </Link>
             </motion.div>
           </div>
         </motion.div>
@@ -474,87 +474,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── CTA ─────────────────────────────────────────────────────────── */}
-      <section id="contact" style={{ padding: '0 0 100px' }}>
-        <div className="container" style={{ maxWidth: 640, textAlign: 'center' }}>
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <h2 style={{ fontSize: 'clamp(28px, 3.5vw, 46px)', color: '#2a1a0a', marginBottom: 16 }}>
-              Ready to Start<br /><span className="grad-text">Your Project?</span>
-            </h2>
-            <p style={{ fontSize: 16, fontFamily: "'Inter', sans-serif", color: '#9b7c5a', marginBottom: 32, lineHeight: 1.7 }}>
-              Drop us a message and we'll respond within one business day.
-            </p>
-            <ContactForm />
-          </motion.div>
-        </div>
-      </section>
     </>
   )
-}
-
-function ContactForm() {
-  const [email, setEmail] = useState('')
-  const [msg, setMsg] = useState('')
-  const [sent, setSent] = useState(false)
-
-  const submit = (e) => {
-    e.preventDefault()
-    if (email && msg) setSent(true)
-  }
-
-  if (sent) return (
-    <motion.div
-      initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-      style={{
-        background: 'rgba(90, 122, 90, 0.08)', border: '1px solid rgba(90, 122, 90, 0.25)',
-        borderRadius: 14, padding: '28px 24px',
-        fontFamily: "'Inter', sans-serif", color: '#5a7a5a', fontWeight: 700, fontSize: 16,
-      }}
-    >
-      ✓ Message received — we'll be in touch soon.
-    </motion.div>
-  )
-
-  return (
-    <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <input
-        type="email" value={email} onChange={e => setEmail(e.target.value)}
-        placeholder="your@email.com" required
-        style={iStyle}
-        onFocus={e => e.target.style.borderColor = 'rgba(122, 82, 48, 0.5)'}
-        onBlur={e => e.target.style.borderColor = 'rgba(110, 78, 42, 0.18)'}
-      />
-      <textarea
-        value={msg} onChange={e => setMsg(e.target.value)}
-        placeholder="Tell us about your project..." required rows={4}
-        style={{ ...iStyle, resize: 'vertical', minHeight: 100 }}
-        onFocus={e => e.target.style.borderColor = 'rgba(122, 82, 48, 0.5)'}
-        onBlur={e => e.target.style.borderColor = 'rgba(110, 78, 42, 0.18)'}
-      />
-      <motion.button
-        type="submit"
-        whileHover={{ scale: 1.03, boxShadow: '0 4px 20px rgba(122, 82, 48, 0.3)' }}
-        whileTap={{ scale: 0.97 }}
-        style={{
-          padding: '14px', borderRadius: 10, cursor: 'pointer',
-          background: 'linear-gradient(135deg, #7a5230, #b07850)',
-          border: 'none', color: '#f7f2ea',
-          fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 700,
-        }}
-      >
-        Send Message
-      </motion.button>
-    </form>
-  )
-}
-
-const iStyle = {
-  padding: '12px 16px', borderRadius: 10, fontSize: 14, outline: 'none',
-  background: 'rgba(110, 78, 42, 0.04)', border: '1px solid rgba(110, 78, 42, 0.18)',
-  color: '#2a1a0a', fontFamily: "'Inter', sans-serif", transition: 'border-color 0.2s',
 }

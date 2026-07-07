@@ -6,7 +6,7 @@ import { Menu, X } from 'lucide-react'
 const links = [
   { label: 'Services',  href: '/#services',  anchor: true },
   { label: 'Projects',  href: '/projects',    anchor: false },
-  { label: 'Contact',   href: '/#contact',    anchor: true },
+  { label: 'Contact',   href: '/contact',     anchor: false },
 ]
 
 function MagButton({ href, children }) {
@@ -80,7 +80,7 @@ export default function Navbar() {
           {links.map(l => (
             <NavLink key={l.label} href={l.href} anchor={l.anchor}>{l.label}</NavLink>
           ))}
-          <MagButton href="/#contact">Get Started</MagButton>
+          <MagButton href="/contact">Get Started</MagButton>
         </nav>
 
         <button
@@ -116,7 +116,7 @@ export default function Navbar() {
                   }
                 </motion.div>
               ))}
-              <Link to="/#contact" onClick={() => setOpen(false)} style={{
+              <Link to="/contact" onClick={() => setOpen(false)} style={{
                 marginTop: 16, display: 'block', padding: '14px 0', textAlign: 'center',
                 borderRadius: 8, background: 'linear-gradient(135deg, #7a5230, #b07850)',
                 fontSize: 16, fontWeight: 700, color: '#f7f2ea',

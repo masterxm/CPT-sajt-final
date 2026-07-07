@@ -4,8 +4,6 @@ import { Link } from 'react-router-dom'
 import { ExternalLink, GitBranch, ArrowUpRight, Layers } from 'lucide-react'
 import { PROJECTS, STATUS_STYLE } from '../data/projects'
 
-const CATEGORIES = ['All', ...Array.from(new Set(PROJECTS.map(p => p.category)))]
-
 // ── Card thumbnail ────────────────────────────────────────────────────────
 function CardVisual({ project, hov }) {
   return (
@@ -206,77 +204,23 @@ function ProjectCard({ project }) {
 
 // ── Page ─────────────────────────────────────────────────────────────────
 export default function ProjectsPage() {
-  const [activeCategory, setActiveCategory] = useState('All')
   const [activeStatus, setActiveStatus] = useState('All')
 
-  const filtered = PROJECTS.filter(p => {
-    const cat = activeCategory === 'All' || p.category === activeCategory
-    const st  = activeStatus  === 'All' || p.status   === activeStatus
-    return cat && st
-  })
+  const filtered = PROJECTS.filter(p =>
+    activeStatus === 'All' || p.status === activeStatus
+  )
 
   const statusOptions = ['All', ...Array.from(new Set(PROJECTS.map(p => p.status)))]
 
   return (
     <section style={{ padding: '100px 0 120px' }}>
       <div className="container">
-
-        <motion.div
-          initial={{ opacity: 0, y: 28 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          style={{ marginBottom: 56 }}
-        >
-          <div style={{
-            display: 'inline-block', fontSize: 11, fontWeight: 700, letterSpacing: 3,
-            textTransform: 'uppercase', color: '#7a5230',
-            background: 'rgba(122, 82, 48, 0.08)', border: '1px solid rgba(122, 82, 48, 0.2)',
-            borderRadius: 100, padding: '5px 14px', marginBottom: 20,
-          }}>
-            Our Work
-          </div>
-          <h1 style={{ fontSize: 'clamp(34px, 5vw, 64px)', color: '#2a1a0a', marginBottom: 16 }}>
-            Project Demos
-          </h1>
-          <p style={{ fontSize: 17, color: '#9b7c5a', maxWidth: 520, lineHeight: 1.7, marginBottom: 36 }}>
-            Live previews and demos of software we've built.
-            Click a card to launch the demo, or explore the source.
-          </p>
-
-          <div style={{
-            display: 'inline-flex', alignItems: 'flex-start', gap: 10,
-            background: 'rgba(122, 82, 48, 0.06)', border: '1px solid rgba(122, 82, 48, 0.16)',
-            borderRadius: 12, padding: '12px 18px', maxWidth: 540,
-          }}>
-            <Layers size={15} color="#7a5230" style={{ marginTop: 1, flexShrink: 0 }} />
-            <div style={{ fontSize: 12, color: '#9b7c5a', lineHeight: 1.6 }}>
-              <strong style={{ color: '#7a5230' }}>To add a project:</strong>{' '}
-              open <code style={{ background: 'rgba(110, 78, 42, 0.08)', padding: '1px 6px', borderRadius: 4, fontSize: 11 }}>
-                src/pages/ProjectsPage.jsx
-              </code>{' '}
-              and edit the <code style={{ background: 'rgba(110, 78, 42, 0.08)', padding: '1px 6px', borderRadius: 4, fontSize: 11 }}>
-                PROJECTS
-              </code> array at the top of the file.
-            </div>
-          </div>
-        </motion.div>
-
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
           style={{ display: 'flex', gap: 16, marginBottom: 40, flexWrap: 'wrap', alignItems: 'center' }}
         >
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {CATEGORIES.map(c => (
-              <FilterBtn key={c} active={activeCategory === c} onClick={() => setActiveCategory(c)}>
-                {c}
-              </FilterBtn>
-            ))}
-          </div>
-
-          <div style={{ width: 1, height: 24, background: 'rgba(110, 78, 42, 0.15)' }} />
-
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {statusOptions.map(s => (
               <FilterBtn key={s} active={activeStatus === s} onClick={() => setActiveStatus(s)} small>
