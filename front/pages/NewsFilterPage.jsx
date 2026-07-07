@@ -2,168 +2,34 @@ import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, RefreshCw, ExternalLink, Rss, AlertCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
-// ── Sources ───────────────────────────────────────────────────────────────
-// To add/change a source: update this array and add its proxy in vite.config.js
+// ── Sources (colors only — data comes from Supabase) ─────────────────────
 const SOURCES = [
-  { id: 'n1',       name: 'N1 Info',  path: '/news/n1/feed/',      color: '#7a5230' },
-  { id: 'blic',     name: 'Blic',     path: '/news/blic/rss/IT',   color: '#9b5030' },
-  { id: 'telegraf', name: 'Telegraf', path: '/news/telegraf/rss',  color: '#5a7a5a' },
-  { id: 'novosti',  name: 'Novosti',  path: '/news/novosti/rss/vesti', color: '#4a6a8a' },
-  { id: 'kurir',    name: 'Kurir',    path: '/news/kurir/rss',     color: '#8a5a30' },
-  { id: 'rts',     name: 'RTS',     path: '/news/rts/page/stories/sr/story/11/Srbija-danas/rss.html', color: '#306a4a' },
-  { id: 'b92',     name: 'B92',     path: '/news/b92/rss/b92/info',     color: '#6a3a7a' },
-  { id: 'naslovi', name: 'Naslovi', path: '/news/naslovi/rss/',          color: '#7a4a6a' },
+  { id: 'n1',       name: 'N1 Info',  color: '#7a5230' },
+  { id: 'blic',     name: 'Blic',     color: '#9b5030' },
+  { id: 'telegraf', name: 'Telegraf', color: '#5a7a5a' },
+  { id: 'novosti',  name: 'Novosti',  color: '#4a6a8a' },
+  { id: 'kurir',    name: 'Kurir',    color: '#8a5a30' },
+  { id: 'rts',      name: 'RTS',      color: '#306a4a' },
+  { id: 'b92',      name: 'B92',      color: '#6a3a7a' },
+  { id: 'naslovi',  name: 'Naslovi',  color: '#7a4a6a' },
 ]
+const COLOR_MAP = Object.fromEntries(SOURCES.map(s => [s.id, s.color]))
 
-// ── AI/ML keyword matching ────────────────────────────────────────────────
-const AI_KEYWORDS = [
-  // Serbian terms
-  'veštačka inteligencija',
-  'veštačke inteligencije',
-  'vestacka inteligencija',
-  'vestacke inteligencije',
-  'mašinsko učenje',
-  'masinsko ucenje',
-  'neuronska mreža',
-  'neuronske mreže',
-  'neuronska mreza',
-  'neuronske mreze',
-  'duboko učenje',
-  'duboko ucenje',
-  'generativna veštačka',
-  'generativna vestacka',
-  // English brands/models (specific enough to not false-positive)
-  'chatgpt',
-  'openai',
-  'deepmind',
-  'anthropic',
-  'midjourney',
-  'stable diffusion',
-  'dall-e',
-  'dall·e',
-  // General English terms used in Serbian tech journalism
-  'artificial intelligence',
-  'machine learning',
-  'deep learning',
-  'neural network',
-  'large language model',
-  'generative ai',
-  'chatbot',
-  'AI'
-]
-
-// Short terms matched as whole words via regex
-const AI_WORD_PATTERNS = [/\bai\b/i, /\bgpt[\s-]?\d/i, /\bllm\b/i, /\bgemini\b/i, /\bgrok\b/i]
-
-// ── IT keyword matching ───────────────────────────────────────────────────
-const IT_KEYWORDS = [
-  // Serbian terms
-  'tehnologija', 'tehnologij', 'informatika', 'informacione tehnologije',
-  'sajber', 'cyber', 'digitalizacija', 'digitalna transformacija',
-  'softver', 'hardver', 'programiranje', 'programer', 'developer',
-  'aplikacija', 'mobilna aplikacija', 'pametni telefon',
-  'kriptovaluta', 'blockchain', 'bitcoin', 'ethereum',
-  'hakerski', 'hakovani', 'hakovan', 'ransomware', 'malware', 'phishing',
-  'start-up', 'startup', 'tech kompanija',
-  'virtuelna realnost', 'proširena realnost', 'metaverse',
-  'oblak', 'cloud computing', 'server', 'datacenter',
-  'e-commerce', 'onlajn kupovina', 'online kupovina',
-  'društvene mreže', 'drustvene mreze',
-  // Tech brands prominent in Serbian press
-  'apple', 'google', 'microsoft', 'meta', 'amazon', 'samsung',
-  'huawei', 'nvidia', 'intel', 'qualcomm', 'spacex',
-  'facebook', 'instagram', 'tiktok', 'youtube', 'whatsapp',
-  // General English IT terms used in Serbian journalism
-  'software', 'hardware', 'smartphone', 'laptop', 'tablet',
-  'cybersecurity', 'hacker', 'data breach', 'privacy',
-  'artificial intelligence', 'machine learning',
-  'cloud', 'app store', 'gaming', 'esport',
-  '5g', 'wi-fi', 'broadband', 'fiber',
-]
-
-const IT_WORD_PATTERNS = [
-  /\bit\b/i, /\bpc\b/i, /\bvr\b/i, /\bar\b/i,
-  /\biphone\b/i, /\bandroid\b/i, /\bwindows\b/i, /\blinux\b/i, /\bmacos\b/i,
-  /\bios\s*\d/i, /\bapi\b/i, /\bsaas\b/i, /\biot\b/i,
-]
-
-function matchesIT(title, desc) {
-  const raw = `${title} ${desc}`
-  const lower = raw.toLowerCase()
-  const norm = normalize(lower)
-  if (IT_KEYWORDS.some(kw => lower.includes(kw) || norm.includes(normalize(kw)))) return true
-  return IT_WORD_PATTERNS.some(re => re.test(raw))
-}
-
-function normalize(str) {
-  return str
-    .replace(/š/g, 's').replace(/Š/g, 'S')
-    .replace(/č/g, 'c').replace(/Č/g, 'C')
-    .replace(/ć/g, 'c').replace(/Ć/g, 'C')
-    .replace(/ž/g, 'z').replace(/Ž/g, 'Z')
-    .replace(/đ/g, 'dj').replace(/Đ/g, 'Dj')
-}
-
-function matchesAI(title, desc) {
-  const raw = `${title} ${desc}`
-  const lower = raw.toLowerCase()
-  const norm = normalize(lower)
-  if (AI_KEYWORDS.some(kw => lower.includes(kw) || norm.includes(normalize(kw)))) return true
-  return AI_WORD_PATTERNS.some(re => re.test(raw))
-}
-
-// ── RSS parsing ───────────────────────────────────────────────────────────
-function getText(node, tag) {
-  return node.getElementsByTagName(tag)[0]?.textContent?.trim() || ''
-}
-
-function parseRSS(xmlString, source) {
-  const xml = new DOMParser().parseFromString(xmlString, 'text/xml')
-  if (xml.querySelector('parsererror')) throw new Error('Invalid XML')
-
-  // Support both RSS 2.0 (<item>) and Atom (<entry>)
-  const items = [
-    ...Array.from(xml.getElementsByTagName('item')),
-    ...Array.from(xml.getElementsByTagName('entry')),
-  ]
-
-  return items.map(item => {
-    const title = getText(item, 'title').replace(/<!\[CDATA\[|\]\]>/g, '').trim()
-
-    const rawDesc = getText(item, 'description') || getText(item, 'summary') || getText(item, 'content')
-    const desc = rawDesc.replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]+>/g, '').trim().slice(0, 240)
-
-    // <link> can be text content (RSS) or an href attribute (Atom)
-    const linkEl = item.getElementsByTagName('link')[0]
-    const link =
-      linkEl?.getAttribute('href') ||
-      linkEl?.textContent?.trim() ||
-      getText(item, 'guid') || ''
-
-    const rawDate = getText(item, 'pubDate') || getText(item, 'updated') || getText(item, 'published')
-    const date = rawDate ? new Date(rawDate) : new Date(0)
-
-    return {
-      id: link || title,
-      title,
-      desc,
-      link,
-      date,
-      source: source.name,
-      sourceId: source.id,
-      sourceColor: source.color,
-      isAI: matchesAI(title, desc),
-      isIT: matchesIT(title, desc),
-    }
-  }).filter(a => a.title)
-}
-
-async function fetchSource(source) {
-  const res = await fetch(source.path)
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const text = await res.text()
-  return parseRSS(text, source)
+function rowToArticle(row) {
+  return {
+    id: row.link,
+    title: row.title,
+    desc: row.description || '',
+    link: row.link,
+    date: new Date(row.published_at),
+    source: row.source_name,
+    sourceId: row.source_id,
+    sourceColor: COLOR_MAP[row.source_id] || '#888888',
+    isAI: row.is_ai,
+    isIT: row.is_it,
+  }
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────
@@ -178,9 +44,7 @@ function timeAgo(date) {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────
-function SourceChip({ source, enabled, onToggle, status }) {
-  const isLoading = status === 'loading'
-  const isError   = status === 'error'
+function SourceChip({ source, enabled, onToggle }) {
   return (
     <motion.button
       whileTap={{ scale: 0.93 }}
@@ -188,30 +52,18 @@ function SourceChip({ source, enabled, onToggle, status }) {
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '6px 14px', borderRadius: 20, cursor: 'pointer', border: 'none',
-        background: enabled
-          ? `${source.color}18`
-          : 'rgba(110, 78, 42, 0.04)',
-        outline: enabled
-          ? `1.5px solid ${source.color}50`
-          : '1px solid rgba(110, 78, 42, 0.14)',
+        background: enabled ? `${source.color}18` : 'rgba(110, 78, 42, 0.04)',
+        outline: enabled ? `1.5px solid ${source.color}50` : '1px solid rgba(110, 78, 42, 0.14)',
         color: enabled ? source.color : '#b09870',
         fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
-        transition: 'all 0.2s', opacity: isError ? 0.5 : 1,
+        transition: 'all 0.2s',
       }}
     >
-      {isLoading ? (
-        <motion.span
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
-            border: `1.5px solid ${source.color}`, borderTopColor: 'transparent' }}
-        />
-      ) : isError ? (
-        <AlertCircle size={10} />
-      ) : (
-        <span style={{ width: 7, height: 7, borderRadius: '50%',
-          background: enabled ? source.color : 'rgba(110,78,42,0.25)', display: 'inline-block' }} />
-      )}
+      <span style={{
+        width: 7, height: 7, borderRadius: '50%',
+        background: enabled ? source.color : 'rgba(110,78,42,0.25)',
+        display: 'inline-block',
+      }} />
       {source.name}
     </motion.button>
   )
@@ -234,7 +86,6 @@ function ArticleCard({ article }) {
         display: 'flex', flexDirection: 'column', gap: 10,
       }}
     >
-      {/* Source + AI badge + date */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span style={{
           fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
@@ -263,7 +114,6 @@ function ArticleCard({ article }) {
         )}
       </div>
 
-      {/* Title */}
       <div style={{
         fontFamily: "'Playfair Display', Georgia, serif",
         fontSize: 16, fontWeight: 700, color: '#2a1a0a', lineHeight: 1.4,
@@ -279,22 +129,19 @@ function ArticleCard({ article }) {
         ) : article.title}
       </div>
 
-      {/* Description */}
       {article.desc && (
         <p style={{ fontSize: 13, color: '#9b7c5a', lineHeight: 1.65, fontFamily: "'Inter', sans-serif" }}>
           {article.desc}{article.desc.length >= 240 ? '…' : ''}
         </p>
       )}
 
-      {/* Read link */}
       {article.link && (
         <a
           href={article.link} target="_blank" rel="noopener noreferrer"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 2,
             fontSize: 12, fontWeight: 600, color: '#7a5230',
-            fontFamily: "'Inter', sans-serif",
-            textDecoration: 'none',
+            fontFamily: "'Inter', sans-serif", textDecoration: 'none',
           }}
           onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
           onMouseLeave={e => e.currentTarget.style.opacity = '1'}
@@ -308,43 +155,45 @@ function ArticleCard({ article }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────
 export default function NewsFilterPage() {
-  const [articles, setArticles]       = useState([])
-  const [sourceStates, setSourceStates] = useState(
-    Object.fromEntries(SOURCES.map(s => [s.id, 'idle']))
-  )
-  const [enabled, setEnabled] = useState(new Set(SOURCES.map(s => s.id)))
-  const [filterMode, setFilterMode]   = useState('ai')
-  const [refreshKey, setRefreshKey]   = useState(0)
+  const [articles, setArticles]   = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState(false)
+  const [enabled, setEnabled]     = useState(new Set(SOURCES.map(s => s.id)))
+  const [filterMode, setFilterMode] = useState('ai')
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     setArticles([])
-    setSourceStates(Object.fromEntries(SOURCES.map(s => [s.id, 'loading'])))
+    setIsLoading(true)
+    setLoadError(false)
 
-    SOURCES.forEach(source => {
-      fetchSource(source)
-        .then(items => {
-          setArticles(prev => [...prev.filter(a => a.sourceId !== source.id), ...items])
-          setSourceStates(prev => ({ ...prev, [source.id]: 'success' }))
-        })
-        .catch(() => {
-          setSourceStates(prev => ({ ...prev, [source.id]: 'error' }))
-        })
-    })
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+    supabase
+      .from('articles')
+      .select('source_id, source_name, title, description, link, published_at, is_ai, is_it')
+      .gte('published_at', thirtyDaysAgo)
+      .order('published_at', { ascending: false })
+      .limit(1000)
+      .then(({ data, error }) => {
+        if (error) throw error
+        setArticles((data || []).map(rowToArticle))
+      })
+      .catch(() => setLoadError(true))
+      .finally(() => setIsLoading(false))
   }, [refreshKey])
 
   const displayed = useMemo(() => {
     return articles
       .filter(a => enabled.has(a.sourceId))
       .filter(a => filterMode === 'all' || (filterMode === 'ai' ? a.isAI : a.isIT))
-      .sort((a, b) => b.date - a.date)
   }, [articles, enabled, filterMode])
 
-  const totalEnabled  = articles.filter(a => enabled.has(a.sourceId)).length
-  const aiCount       = articles.filter(a => enabled.has(a.sourceId) && a.isAI).length
-  const itCount       = articles.filter(a => enabled.has(a.sourceId) && a.isIT).length
-  const isLoading     = Object.values(sourceStates).some(s => s === 'loading')
+  const totalEnabled = articles.filter(a => enabled.has(a.sourceId)).length
+  const aiCount      = articles.filter(a => enabled.has(a.sourceId) && a.isAI).length
+  const itCount      = articles.filter(a => enabled.has(a.sourceId) && a.isIT).length
 
-  const toggleSource = (id) => {
+  const toggleSource = id => {
     setEnabled(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
@@ -395,20 +244,17 @@ export default function NewsFilterPage() {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
           style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 32 }}>
 
-          {/* Source toggles */}
           {SOURCES.map(s => (
             <SourceChip
               key={s.id}
               source={s}
               enabled={enabled.has(s.id)}
               onToggle={() => toggleSource(s.id)}
-              status={sourceStates[s.id]}
             />
           ))}
 
           <div style={{ width: 1, height: 22, background: 'rgba(110,78,42,0.15)', margin: '0 4px' }} />
 
-          {/* Filter mode */}
           {[
             { mode: 'ai',  label: 'AI / ML only' },
             { mode: 'it',  label: 'IT only' },
@@ -426,7 +272,6 @@ export default function NewsFilterPage() {
             </motion.button>
           ))}
 
-          {/* Refresh */}
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => setRefreshKey(k => k + 1)}
@@ -455,12 +300,10 @@ export default function NewsFilterPage() {
             {filterMode === 'it'  && <><strong style={{ color: '#7a5230' }}>{itCount}</strong> IT articles</>}
             {filterMode === 'all' && <><strong style={{ color: '#2a1a0a' }}>{totalEnabled}</strong> total articles</>}
           </span>
-          {isLoading && (
-            <span style={{ color: '#9b7c5a', fontStyle: 'italic' }}>Fetching…</span>
-          )}
-          {Object.values(sourceStates).some(s => s === 'error') && (
+          {isLoading && <span style={{ color: '#9b7c5a', fontStyle: 'italic' }}>Loading…</span>}
+          {loadError && (
             <span style={{ color: '#b07850', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <AlertCircle size={12} /> Some sources failed to load
+              <AlertCircle size={12} /> Failed to load articles
             </span>
           )}
         </div>
@@ -477,16 +320,16 @@ export default function NewsFilterPage() {
         </motion.div>
 
         {/* Empty state */}
-        {!isLoading && displayed.length === 0 && (
+        {!isLoading && !loadError && displayed.length === 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             style={{ textAlign: 'center', padding: '80px 20px', color: '#b09870', fontFamily: "'Inter', sans-serif" }}>
             {filterMode === 'ai'
-              ? 'No AI/ML articles found right now — try refreshing or switching to all articles.'
-              : 'No articles found. Try enabling more sources or refreshing.'}
+              ? 'No AI/ML articles found in the last 30 days — try switching to all articles.'
+              : 'No articles found. Try enabling more sources.'}
           </motion.div>
         )}
 
-        {/* Loading skeleton when nothing loaded yet */}
+        {/* Loading skeleton */}
         {isLoading && displayed.length === 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
             {[...Array(6)].map((_, i) => (

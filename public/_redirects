@@ -6,3 +6,5 @@
 /news/rts/*       https://www.rts.rs/:splat       200
 /news/b92/*       https://www.b92.net/:splat       200
 /news/naslovi/*   https://naslovi.net/:splat       200
+
+/*  /index.html  200
