@@ -10,9 +10,9 @@ const EMAILS = [
 
 const MAPS_URL = 'https://maps.app.goo.gl/Y7pnM6kFAiUxyEsMA'
 
-// To replace the map embed: go to Google Maps → find your location →
-// Share → Embed a map → copy the src URL from the iframe code, paste below.
-const MAPS_EMBED_URL = 'https://maps.app.goo.gl/Y7pnM6kFAiUxyEsMA'
+// Keyless embed format — short share links (maps.app.goo.gl) refuse to load
+// inside iframes, so this uses the resolved coordinates of that same place.
+const MAPS_EMBED_URL = 'https://maps.google.com/maps?q=42.6993741,23.3210289&z=16&output=embed'
 
 function EmailCard({ person, index }) {
   const [copied, setCopied] = useState(false)
