@@ -25,6 +25,30 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  /* iOS safe area (notch / home bar) */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Remove tap flash on iOS/Android */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Faster tap response on touch devices */
+button, a, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Prevent iOS from zooming on input focus (requires font-size >= 16px) */
+input, textarea, select {
+  font-size: max(16px, 1em) !important;
+}
+
+/* Minimum tap target size for touch */
+button { min-height: 44px; }
+
+@media (max-width: 480px) {
+  .container { padding: 0 16px; }
 }
 
 ::selection { background: rgba(122, 82, 48, 0.2); color: #2a1a0a; }

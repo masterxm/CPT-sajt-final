@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect } from 'react'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Code2, Layers, Zap, Globe, BarChart3, Shield } from 'lucide-react'
+import { ArrowRight, ChevronDown, Code2, Layers, Zap, Globe, BarChart3, Shield } from 'lucide-react'
+import { PROJECTS, STATUS_STYLE } from '../data/projects'
 
 // ── Rotating headline words ────────────────────────────────────────────────
 const WORDS = ['Ship Faster', 'Scale Smarter', 'Build Better', 'Move Forward']
@@ -129,12 +130,75 @@ function useRandomQuote() {
 }
 
 // ── Home page ─────────────────────────────────────────────────────────────
+// ── Mini project card for the home drawer ────────────────────────────────
+function MiniProjectCard({ project }) {
+  const ss = STATUS_STYLE[project.status] || STATUS_STYLE['Archived']
+  const inner = (
+    <motion.div
+      whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.98 }}
+      style={{
+        borderRadius: 14, overflow: 'hidden',
+        background: 'rgba(235, 226, 212, 0.8)',
+        border: '1px solid rgba(110, 78, 42, 0.15)',
+        display: 'flex', flexDirection: 'column', height: '100%',
+      }}
+    >
+      <div style={{ height: 4, background: `linear-gradient(90deg, ${project.accent}, ${project.accent}66)` }} />
+      <div style={{ padding: '16px 18px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 15, fontWeight: 700, color: '#2a1a0a' }}>
+          {project.title}
+        </div>
+        <div style={{ fontSize: 12, color: '#9b7c5a', lineHeight: 1.55, flex: 1 }}>
+          {project.desc}
+        </div>
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 4 }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20,
+            background: ss.bg, border: `1px solid ${ss.border}`, color: ss.text,
+          }}>
+            <span style={{ width: 4, height: 4, borderRadius: '50%', background: ss.dot, display: 'inline-block' }} />
+            {project.status}
+          </span>
+          {project.tags.slice(0, 2).map(t => (
+            <span key={t} style={{
+              fontSize: 10, padding: '2px 7px', borderRadius: 5,
+              background: 'rgba(110, 78, 42, 0.06)', border: '1px solid rgba(110, 78, 42, 0.14)',
+              color: '#7a5230', fontFamily: "'Inter', sans-serif",
+            }}>{t}</span>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  )
+
+  if (project.demoUrl) return (
+    <a href={project.demoUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none', height: '100%' }}>{inner}</a>
+  )
+  if (project.slug) return (
+    <Link to={`/projects/${project.slug}`} style={{ display: 'block', textDecoration: 'none', height: '100%' }}>{inner}</Link>
+  )
+  return inner
+}
+
 export default function Home() {
   const heroRef = useRef(null)
+  const drawerRef = useRef(null)
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 70])
   const heroOpacity = useTransform(scrollYProgress, [0, 0.65], [1, 0])
   const quote = useRandomQuote()
+  const [showProjects, setShowProjects] = useState(false)
+
+  const toggleProjects = () => {
+    setShowProjects(prev => {
+      if (!prev) {
+        setTimeout(() => drawerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+      }
+      return !prev
+    })
+  }
 
   return (
     <>
@@ -204,21 +268,33 @@ export default function Home() {
               transition={{ duration: 0.55, delay: 0.3 }}
               style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}
             >
-              <Link to="/projects">
+              <motion.button
+                onClick={toggleProjects}
+                whileHover={{ scale: 1.04, boxShadow: '0 4px 24px rgba(122, 82, 48, 0.32)' }}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '13px 30px', borderRadius: 10,
+                  background: showProjects
+                    ? 'rgba(110, 78, 42, 0.1)'
+                    : 'linear-gradient(135deg, #7a5230, #b07850)',
+                  border: showProjects ? '1px solid rgba(110, 78, 42, 0.25)' : 'none',
+                  fontSize: 15, fontFamily: "'Inter', sans-serif", fontWeight: 700,
+                  color: showProjects ? '#7a5230' : '#f7f2ea',
+                  boxShadow: showProjects ? 'none' : '0 2px 16px rgba(122, 82, 48, 0.22)',
+                  cursor: 'pointer',
+                  transition: 'background 0.3s, color 0.3s, border 0.3s, box-shadow 0.3s',
+                }}
+              >
+                {showProjects ? 'Hide Projects' : 'View Our Projects'}
                 <motion.span
-                  whileHover={{ scale: 1.04, boxShadow: '0 4px 24px rgba(122, 82, 48, 0.32)' }}
-                  whileTap={{ scale: 0.97 }}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                    padding: '13px 30px', borderRadius: 10,
-                    background: 'linear-gradient(135deg, #7a5230, #b07850)',
-                    fontSize: 15, fontFamily: "'Inter', sans-serif", fontWeight: 700, color: '#f7f2ea',
-                    boxShadow: '0 2px 16px rgba(122, 82, 48, 0.22)',
-                  }}
+                  animate={{ rotate: showProjects ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ display: 'inline-flex' }}
                 >
-                  View Our Projects <ArrowRight size={15} />
+                  <ChevronDown size={15} />
                 </motion.span>
-              </Link>
+              </motion.button>
               <a href="#contact">
                 <motion.span
                   whileHover={{ scale: 1.04 }}
@@ -238,6 +314,63 @@ export default function Home() {
           </div>
         </motion.div>
       </section>
+
+      {/* ── Projects drawer ─────────────────────────────────────────────── */}
+      <div ref={drawerRef}>
+        <AnimatePresence>
+          {showProjects && (
+            <motion.section
+              key="projects-drawer"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+              style={{ overflow: 'hidden', borderBottom: '1px solid rgba(110, 78, 42, 0.1)' }}
+            >
+              <div className="container" style={{ padding: '48px 28px 56px' }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  marginBottom: 28, flexWrap: 'wrap', gap: 12,
+                }}>
+                  <h2 style={{ fontSize: 'clamp(20px, 3vw, 30px)', color: '#2a1a0a' }}>
+                    Our Projects
+                  </h2>
+                  <Link to="/projects">
+                    <motion.span
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        fontSize: 13, fontWeight: 600, color: '#7a5230',
+                        fontFamily: "'Inter', sans-serif",
+                      }}
+                    >
+                      Full project page <ArrowRight size={13} />
+                    </motion.span>
+                  </Link>
+                </div>
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                  gap: 14,
+                }}>
+                  {PROJECTS.map((p, i) => (
+                    <motion.div
+                      key={p.id}
+                      initial={{ opacity: 0, y: 18 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.045, duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      <MiniProjectCard project={p} />
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </motion.section>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* ── Services ────────────────────────────────────────────────────── */}
       <section id="services" style={{ padding: '100px 0' }}>
