@@ -1,4 +1,3 @@
-import { schedule } from '@netlify/functions'
 import { XMLParser } from 'fast-xml-parser'
 import { createClient } from '@supabase/supabase-js'
 
@@ -180,7 +179,7 @@ function parseRSS(xmlText, source) {
 }
 
 // ── Main collector ─────────────────────────────────────────────────────────
-async function collectAll() {
+export async function collectAll() {
   const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -190,7 +189,7 @@ async function collectAll() {
     SOURCES.map(async source => {
       const res = await fetch(source.url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RSS-Collector/1.0)' },
-        signal: AbortSignal.timeout(12000),
+        signal: AbortSignal.timeout(8000),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status} from ${source.id}`)
       const text = await res.text()
@@ -226,12 +225,16 @@ async function collectAll() {
   return { inserted, errors }
 }
 
-export const handler = schedule('0 * * * *', async () => {
+export default async () => {
   try {
     const result = await collectAll()
-    return { statusCode: 200, body: JSON.stringify(result) }
+    return Response.json(result)
   } catch (err) {
     console.error('RSS collector failed:', err)
-    return { statusCode: 500, body: String(err.message) }
+    return Response.json({ error: err.message }, { status: 500 })
   }
-})
+}
+
+export const config = {
+  schedule: '0 * * * *',
+}

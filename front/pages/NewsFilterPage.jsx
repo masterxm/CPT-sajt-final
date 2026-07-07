@@ -155,30 +155,47 @@ function ArticleCard({ article }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────
 export default function NewsFilterPage() {
-  const [articles, setArticles]   = useState([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [loadError, setLoadError] = useState(false)
-  const [enabled, setEnabled]     = useState(new Set(SOURCES.map(s => s.id)))
+  const [articles, setArticles]     = useState([])
+  const [isLoading, setIsLoading]   = useState(false)
+  const [isSeeding, setIsSeeding]   = useState(false)
+  const [loadError, setLoadError]   = useState(false)
+  const [enabled, setEnabled]       = useState(new Set(SOURCES.map(s => s.id)))
   const [filterMode, setFilterMode] = useState('ai')
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     setArticles([])
     setIsLoading(true)
+    setIsSeeding(false)
     setLoadError(false)
 
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    async function load() {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-    supabase
-      .from('articles')
-      .select('source_id, source_name, title, description, link, published_at, is_ai, is_it')
-      .gte('published_at', thirtyDaysAgo)
-      .order('published_at', { ascending: false })
-      .limit(1000)
-      .then(({ data, error }) => {
+      const query = () => supabase
+        .from('articles')
+        .select('source_id, source_name, title, description, link, published_at, is_ai, is_it')
+        .gte('published_at', thirtyDaysAgo)
+        .order('published_at', { ascending: false })
+        .limit(1000)
+
+      let { data, error } = await query()
+      if (error) throw error
+
+      if (data.length === 0) {
+        setIsLoading(false)
+        setIsSeeding(true)
+        await fetch('/.netlify/functions/rss-collector')
+        setIsSeeding(false)
+        setIsLoading(true)
+        ;({ data, error } = await query())
         if (error) throw error
-        setArticles((data || []).map(rowToArticle))
-      })
+      }
+
+      setArticles((data || []).map(rowToArticle))
+    }
+
+    load()
       .catch(() => setLoadError(true))
       .finally(() => setIsLoading(false))
   }, [refreshKey])
@@ -282,8 +299,8 @@ export default function NewsFilterPage() {
               color: '#9b7c5a', fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
             }}
           >
-            <motion.span animate={isLoading ? { rotate: 360 } : { rotate: 0 }}
-              transition={isLoading ? { duration: 1, repeat: Infinity, ease: 'linear' } : {}}>
+            <motion.span animate={isLoading || isSeeding ? { rotate: 360 } : { rotate: 0 }}
+              transition={isLoading || isSeeding ? { duration: 1, repeat: Infinity, ease: 'linear' } : {}}>
               <RefreshCw size={13} />
             </motion.span>
             Refresh
@@ -300,7 +317,8 @@ export default function NewsFilterPage() {
             {filterMode === 'it'  && <><strong style={{ color: '#7a5230' }}>{itCount}</strong> IT articles</>}
             {filterMode === 'all' && <><strong style={{ color: '#2a1a0a' }}>{totalEnabled}</strong> total articles</>}
           </span>
-          {isLoading && <span style={{ color: '#9b7c5a', fontStyle: 'italic' }}>Loading…</span>}
+          {isSeeding && <span style={{ color: '#9b7c5a', fontStyle: 'italic' }}>First run — collecting articles, this may take a moment…</span>}
+          {isLoading && !isSeeding && <span style={{ color: '#9b7c5a', fontStyle: 'italic' }}>Loading…</span>}
           {loadError && (
             <span style={{ color: '#b07850', display: 'flex', alignItems: 'center', gap: 4 }}>
               <AlertCircle size={12} /> Failed to load articles
