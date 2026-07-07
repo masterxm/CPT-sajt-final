@@ -185,9 +185,14 @@ export default function NewsFilterPage() {
       if (data.length === 0) {
         setIsLoading(false)
         setIsSeeding(true)
-        await fetch('/.netlify/functions/rss-collector')
-        setIsSeeding(false)
-        setIsLoading(true)
+        try {
+          await fetch('/.netlify/functions/rss-collector')
+        } catch {
+          // seeding call failed — continue and show empty state
+        } finally {
+          setIsSeeding(false)
+          setIsLoading(true)
+        }
         ;({ data, error } = await query())
         if (error) throw error
       }

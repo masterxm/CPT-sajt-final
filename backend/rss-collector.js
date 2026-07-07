@@ -189,7 +189,7 @@ export async function collectAll() {
     SOURCES.map(async source => {
       const res = await fetch(source.url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RSS-Collector/1.0)' },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(5000),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status} from ${source.id}`)
       const text = await res.text()
@@ -236,5 +236,5 @@ export default async () => {
 }
 
 export const config = {
-  schedule: '0 * * * *',
+  schedule: '0 5 * * *',
 }
