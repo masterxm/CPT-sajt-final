@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, RefreshCw, ExternalLink, Rss, AlertCircle } from 'lucide-react'
+import { ArrowLeft, RefreshCw, ExternalLink, Rss, AlertCircle, Heart } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
@@ -19,16 +19,18 @@ const COLOR_MAP = Object.fromEntries(SOURCES.map(s => [s.id, s.color]))
 
 function rowToArticle(row) {
   return {
-    id: row.link,
-    title: row.title,
-    desc: row.description || '',
-    link: row.link,
-    date: new Date(row.published_at),
-    source: row.source_name,
-    sourceId: row.source_id,
+    id:          row.link,
+    dbId:        row.id,
+    title:       row.title,
+    desc:        row.description || '',
+    link:        row.link,
+    date:        new Date(row.published_at),
+    source:      row.source_name,
+    sourceId:    row.source_id,
     sourceColor: COLOR_MAP[row.source_id] || '#888888',
-    isAI: row.is_ai,
-    isIT: row.is_it,
+    isAI:        row.is_ai,
+    isIT:        row.is_it,
+    hearted:     row.hearted || false,
   }
 }
 
@@ -69,7 +71,7 @@ function SourceChip({ source, enabled, onToggle }) {
   )
 }
 
-function ArticleCard({ article }) {
+function ArticleCard({ article, onHeart }) {
   const ago = timeAgo(article.date)
   return (
     <motion.article
@@ -79,11 +81,12 @@ function ArticleCard({ article }) {
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       style={{
-        background: 'rgba(235, 226, 212, 0.75)',
-        border: '1px solid rgba(110, 78, 42, 0.14)',
+        background: article.hearted ? 'rgba(220, 210, 195, 0.9)' : 'rgba(235, 226, 212, 0.75)',
+        border: article.hearted ? '1px solid rgba(180, 80, 60, 0.22)' : '1px solid rgba(110, 78, 42, 0.14)',
         borderRadius: 14,
         padding: '20px 22px',
         display: 'flex', flexDirection: 'column', gap: 10,
+        transition: 'background 0.25s, border 0.25s',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -107,11 +110,29 @@ function ArticleCard({ article }) {
             AI / ML
           </span>
         )}
-        {ago && (
-          <span style={{ fontSize: 11, color: '#b09870', marginLeft: 'auto', fontFamily: "'Inter', sans-serif" }}>
-            {ago}
-          </span>
-        )}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          {ago && (
+            <span style={{ fontSize: 11, color: '#b09870', fontFamily: "'Inter', sans-serif" }}>
+              {ago}
+            </span>
+          )}
+          <motion.button
+            whileTap={{ scale: 0.82 }}
+            onClick={() => onHeart(article)}
+            title={article.hearted ? 'Remove from saved' : 'Save article'}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 2,
+              display: 'flex', alignItems: 'center', lineHeight: 1,
+            }}
+          >
+            <Heart
+              size={15}
+              fill={article.hearted ? '#c0524a' : 'none'}
+              color={article.hearted ? '#c0524a' : '#c0a880'}
+              style={{ transition: 'fill 0.2s, color 0.2s' }}
+            />
+          </motion.button>
+        </div>
       </div>
 
       <div style={{
@@ -161,7 +182,14 @@ export default function NewsFilterPage() {
   const [loadError, setLoadError]   = useState(false)
   const [enabled, setEnabled]       = useState(new Set(SOURCES.map(s => s.id)))
   const [filterMode, setFilterMode] = useState('ai')
+  const [sortMode, setSortMode]     = useState('newest')
   const [refreshKey, setRefreshKey] = useState(0)
+
+  const toggleHeart = async (article) => {
+    const newVal = !article.hearted
+    setArticles(prev => prev.map(a => a.id === article.id ? { ...a, hearted: newVal } : a))
+    await supabase.rpc('toggle_heart', { article_link: article.link, heart_val: newVal })
+  }
 
   useEffect(() => {
     setArticles([])
@@ -174,8 +202,8 @@ export default function NewsFilterPage() {
 
       const query = () => supabase
         .from('articles')
-        .select('source_id, source_name, title, description, link, published_at, is_ai, is_it')
-        .gte('published_at', thirtyDaysAgo)
+        .select('id, source_id, source_name, title, description, link, published_at, is_ai, is_it, hearted')
+        .or(`published_at.gte.${thirtyDaysAgo},hearted.eq.true`)
         .order('published_at', { ascending: false })
         .limit(1000)
 
@@ -206,14 +234,24 @@ export default function NewsFilterPage() {
   }, [refreshKey])
 
   const displayed = useMemo(() => {
-    return articles
-      .filter(a => enabled.has(a.sourceId))
-      .filter(a => filterMode === 'all' || (filterMode === 'ai' ? a.isAI : a.isIT))
-  }, [articles, enabled, filterMode])
+    const list = filterMode === 'hearted'
+      ? articles.filter(a => a.hearted)
+      : articles
+          .filter(a => enabled.has(a.sourceId))
+          .filter(a => filterMode === 'all' || (filterMode === 'ai' ? a.isAI : a.isIT))
 
-  const totalEnabled = articles.filter(a => enabled.has(a.sourceId)).length
-  const aiCount      = articles.filter(a => enabled.has(a.sourceId) && a.isAI).length
-  const itCount      = articles.filter(a => enabled.has(a.sourceId) && a.isIT).length
+    if (sortMode === 'saved') {
+      return [...list].sort((a, b) =>
+        (b.hearted - a.hearted) || (b.date.getTime() - a.date.getTime())
+      )
+    }
+    return list
+  }, [articles, enabled, filterMode, sortMode])
+
+  const totalEnabled  = articles.filter(a => enabled.has(a.sourceId)).length
+  const aiCount       = articles.filter(a => enabled.has(a.sourceId) && a.isAI).length
+  const itCount       = articles.filter(a => enabled.has(a.sourceId) && a.isIT).length
+  const heartedCount  = articles.filter(a => a.hearted).length
 
   const toggleSource = id => {
     setEnabled(prev => {
@@ -264,52 +302,104 @@ export default function NewsFilterPage() {
 
         {/* Controls */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
-          style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 32 }}>
+          style={{ display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 36 }}>
 
-          {SOURCES.map(s => (
-            <SourceChip
-              key={s.id}
-              source={s}
-              enabled={enabled.has(s.id)}
-              onToggle={() => toggleSource(s.id)}
-            />
-          ))}
+          {/* Row 1 — sources */}
+          <div>
+            <div style={{
+              fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
+              color: '#b09870', fontFamily: "'Inter', sans-serif", marginBottom: 10,
+            }}>
+              Sources
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {SOURCES.map(s => (
+                <SourceChip
+                  key={s.id}
+                  source={s}
+                  enabled={enabled.has(s.id)}
+                  onToggle={() => toggleSource(s.id)}
+                />
+              ))}
+            </div>
+          </div>
 
-          <div style={{ width: 1, height: 22, background: 'rgba(110,78,42,0.15)', margin: '0 4px' }} />
+          {/* Row 2 — filter modes */}
+          <div>
+            <div style={{
+              fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
+              color: '#b09870', fontFamily: "'Inter', sans-serif", marginBottom: 10,
+            }}>
+              Filter
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {[
+                { mode: 'ai',      label: 'AI / ML only' },
+                { mode: 'it',      label: 'IT only' },
+                { mode: 'all',     label: 'All articles' },
+                { mode: 'hearted', label: '♥ Saved', count: heartedCount },
+              ].map(({ mode, label, count }) => (
+                <motion.button key={mode} whileTap={{ scale: 0.93 }} onClick={() => setFilterMode(mode)}
+                  style={{
+                    padding: '7px 16px', borderRadius: 20, cursor: 'pointer',
+                    background: filterMode === mode
+                      ? (mode === 'hearted' ? 'linear-gradient(135deg, #c0524a, #e07060)' : 'linear-gradient(135deg, #7a5230, #b07850)')
+                      : 'rgba(110,78,42,0.05)',
+                    border: filterMode === mode ? 'none' : '1px solid rgba(110,78,42,0.14)',
+                    color: filterMode === mode ? '#f7f2ea' : (mode === 'hearted' ? '#c0524a' : '#9b7c5a'),
+                    fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
+                  }}>
+                  {label}{count > 0 && mode === 'hearted' ? ` ${count}` : ''}
+                </motion.button>
+              ))}
+            </div>
+          </div>
 
-          {[
-            { mode: 'ai',  label: 'AI / ML only' },
-            { mode: 'it',  label: 'IT only' },
-            { mode: 'all', label: 'All articles' },
-          ].map(({ mode, label }) => (
-            <motion.button key={mode} whileTap={{ scale: 0.93 }} onClick={() => setFilterMode(mode)}
-              style={{
-                padding: '6px 14px', borderRadius: 20, cursor: 'pointer',
-                background: filterMode === mode ? 'linear-gradient(135deg, #7a5230, #b07850)' : 'rgba(110,78,42,0.05)',
-                border: filterMode === mode ? 'none' : '1px solid rgba(110,78,42,0.14)',
-                color: filterMode === mode ? '#f7f2ea' : '#9b7c5a',
-                fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
+          {/* Row 3 — sort + refresh */}
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div>
+              <div style={{
+                fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
+                color: '#b09870', fontFamily: "'Inter', sans-serif", marginBottom: 10,
               }}>
-              {label}
-            </motion.button>
-          ))}
+                Sort
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {[
+                  { mode: 'newest', label: 'Newest first' },
+                  { mode: 'saved',  label: '♥ Saved first' },
+                ].map(({ mode, label }) => (
+                  <motion.button key={mode} whileTap={{ scale: 0.93 }} onClick={() => setSortMode(mode)}
+                    style={{
+                      padding: '7px 16px', borderRadius: 20, cursor: 'pointer',
+                      background: sortMode === mode ? 'linear-gradient(135deg, #7a5230, #b07850)' : 'rgba(110,78,42,0.05)',
+                      border: sortMode === mode ? 'none' : '1px solid rgba(110,78,42,0.14)',
+                      color: sortMode === mode ? '#f7f2ea' : '#9b7c5a',
+                      fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
+                    }}>
+                    {label}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
 
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setRefreshKey(k => k + 1)}
-            style={{
-              marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', borderRadius: 20, cursor: 'pointer',
-              background: 'rgba(110,78,42,0.05)', border: '1px solid rgba(110,78,42,0.14)',
-              color: '#9b7c5a', fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            <motion.span animate={isLoading || isSeeding ? { rotate: 360 } : { rotate: 0 }}
-              transition={isLoading || isSeeding ? { duration: 1, repeat: Infinity, ease: 'linear' } : {}}>
-              <RefreshCw size={13} />
-            </motion.span>
-            Refresh
-          </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setRefreshKey(k => k + 1)}
+              style={{
+                marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
+                padding: '7px 16px', borderRadius: 20, cursor: 'pointer',
+                background: 'rgba(110,78,42,0.05)', border: '1px solid rgba(110,78,42,0.14)',
+                color: '#9b7c5a', fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              <motion.span animate={isLoading || isSeeding ? { rotate: 360 } : { rotate: 0 }}
+                transition={isLoading || isSeeding ? { duration: 1, repeat: Infinity, ease: 'linear' } : {}}>
+                <RefreshCw size={13} />
+              </motion.span>
+              Refresh
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* Stats bar */}
@@ -318,9 +408,10 @@ export default function NewsFilterPage() {
           fontSize: 13, color: '#b09870', fontFamily: "'Inter', sans-serif",
         }}>
           <span>
-            {filterMode === 'ai'  && <><strong style={{ color: '#7a5230' }}>{aiCount}</strong> AI/ML articles</>}
-            {filterMode === 'it'  && <><strong style={{ color: '#7a5230' }}>{itCount}</strong> IT articles</>}
-            {filterMode === 'all' && <><strong style={{ color: '#2a1a0a' }}>{totalEnabled}</strong> total articles</>}
+            {filterMode === 'ai'      && <><strong style={{ color: '#7a5230' }}>{aiCount}</strong> AI/ML articles</>}
+            {filterMode === 'it'      && <><strong style={{ color: '#7a5230' }}>{itCount}</strong> IT articles</>}
+            {filterMode === 'all'     && <><strong style={{ color: '#2a1a0a' }}>{totalEnabled}</strong> total articles</>}
+            {filterMode === 'hearted' && <><strong style={{ color: '#c0524a' }}>{heartedCount}</strong> saved articles</>}
           </span>
           {isSeeding && <span style={{ color: '#9b7c5a', fontStyle: 'italic' }}>First run — collecting articles, this may take a moment…</span>}
           {isLoading && !isSeeding && <span style={{ color: '#9b7c5a', fontStyle: 'italic' }}>Loading…</span>}
@@ -338,7 +429,7 @@ export default function NewsFilterPage() {
           gap: 16,
         }}>
           <AnimatePresence mode="popLayout">
-            {displayed.map(a => <ArticleCard key={a.id} article={a} />)}
+            {displayed.map(a => <ArticleCard key={a.id} article={a} onHeart={toggleHeart} />)}
           </AnimatePresence>
         </motion.div>
 

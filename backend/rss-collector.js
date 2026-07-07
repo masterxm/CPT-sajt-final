@@ -216,11 +216,12 @@ export async function collectAll() {
     else inserted += Math.min(BATCH, articles.length - i)
   }
 
-  // Prune articles older than 30 days
+  // Prune articles older than 30 days, but keep hearted ones forever
   await supabase
     .from('articles')
     .delete()
     .lt('published_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+    .eq('hearted', false)
 
   return { inserted, errors }
 }
