@@ -44,8 +44,10 @@ input, textarea, select {
   font-size: max(16px, 1em) !important;
 }
 
-/* Minimum tap target size for touch */
-button { min-height: 44px; }
+/* Minimum tap target size, only where touch is the primary input */
+@media (pointer: coarse) {
+  button { min-height: 44px; }
+}
 
 @media (max-width: 480px) {
   .container { padding: 0 16px; }

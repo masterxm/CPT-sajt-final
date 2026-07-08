@@ -57,9 +57,6 @@ export async function analyzeFridgeInput(userText, existingItems = []) {
   }
 
   const useBearerToken = provider === 'gemini' && /^ya29\.|^Bearer\s+/i.test(apiKey)
-  const endpoint = provider === 'gemini'
-    ? `/api/gemini${geminiApiPath}/models/${geminiModel}:predict${useBearerToken ? '' : `?key=${encodeURIComponent(apiKey)}`}`
-    : ENDPOINT
 
   const headers = provider === 'anthropic'
     ? {

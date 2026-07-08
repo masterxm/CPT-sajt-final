@@ -6,10 +6,13 @@ import { Menu, X } from 'lucide-react'
 const links = [
   { label: 'Services',  href: '/#services',  anchor: true },
   { label: 'Projects',  href: '/projects',    anchor: false },
+  { label: 'Apps',      href: '/apps',        anchor: false },
   { label: 'Contact',   href: '/contact',     anchor: false },
 ]
 
-function MagButton({ href, children }) {
+const MotionLink = motion.create(Link)
+
+function MagButton({ to, children }) {
   const ref = useRef(null)
   const [pos, setPos] = useState({ x: 0, y: 0 })
 
@@ -20,9 +23,9 @@ function MagButton({ href, children }) {
   const onLeave = () => setPos({ x: 0, y: 0 })
 
   return (
-    <motion.a
+    <MotionLink
       ref={ref}
-      href={href}
+      to={to}
       onMouseMove={onMove}
       onMouseLeave={onLeave}
       animate={{ x: pos.x * 0.25, y: pos.y * 0.25 }}
@@ -36,13 +39,15 @@ function MagButton({ href, children }) {
       }}
     >
       {children}
-    </motion.a>
+    </MotionLink>
   )
 }
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
+  const { pathname } = useLocation()
+  const isNewsPage = pathname === '/projects/alpha'
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 50)
@@ -68,19 +73,30 @@ export default function Navbar() {
         maxWidth: 1160, margin: '0 auto', padding: '0 28px',
         height: 72, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <Link to="/" style={{
-          fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 22,
-          letterSpacing: '0.01em', color: '#2a1a0a',
-        }}>
-          CPT<span style={{ color: '#7a5230' }}>.</span>
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+          <Link to="/" style={{
+            fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 22,
+            letterSpacing: '0.01em', color: '#2a1a0a',
+          }}>
+            CPT<span style={{ color: '#7a5230' }}>.</span>
+          </Link>
+          {isNewsPage && (
+            <span style={{
+              fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 600, fontSize: 16,
+              color: '#7a5230', borderLeft: '1px solid rgba(110, 78, 42, 0.25)', paddingLeft: 14,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              Relevant Serbian News
+            </span>
+          )}
+        </div>
 
         <nav style={{ display: 'flex', gap: 38, alignItems: 'center' }}
           className="desktop-nav">
           {links.map(l => (
             <NavLink key={l.label} href={l.href} anchor={l.anchor}>{l.label}</NavLink>
           ))}
-          <MagButton href="/contact">Get Started</MagButton>
+          <MagButton to="/contact">Get Started</MagButton>
         </nav>
 
         <button

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { RefreshCw, ExternalLink, AlertCircle, Heart, ChevronDown } from 'lucide-react'
+import { RefreshCw, ExternalLink, AlertCircle, Heart, SlidersHorizontal } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 // ── Sources (colors only — data comes from Supabase) ─────────────────────
@@ -70,42 +70,18 @@ function SourceChip({ source, enabled, onToggle }) {
   )
 }
 
-function CollapsibleSection({ label, isOpen, onToggle, children }) {
+function FilterGroup({ label, children }) {
   return (
     <div>
-      <button
-        onClick={onToggle}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-          fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
-          color: '#b09870', fontFamily: "'Inter', sans-serif",
-        }}
-      >
-        <motion.span
-          animate={{ rotate: isOpen ? 0 : -90 }}
-          transition={{ duration: 0.2 }}
-          style={{ display: 'inline-flex', alignItems: 'center' }}
-        >
-          <ChevronDown size={13} />
-        </motion.span>
+      <div style={{
+        fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
+        color: '#b09870', fontFamily: "'Inter', sans-serif", marginBottom: 10,
+      }}>
         {label}
-      </button>
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            style={{ overflow: 'hidden' }}
-          >
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 10 }}>
-              {children}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {children}
+      </div>
     </div>
   )
 }
@@ -223,10 +199,7 @@ export default function NewsFilterPage() {
   const [filterMode, setFilterMode] = useState('ai')
   const [sortMode, setSortMode]     = useState('newest')
   const [refreshKey, setRefreshKey] = useState(0)
-  const [openSections, setOpenSections] = useState({ sources: false, filter: false, sort: false })
-
-  const toggleSection = key =>
-    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const toggleHeart = async (article) => {
     const newVal = !article.hearted
@@ -310,69 +283,31 @@ export default function NewsFilterPage() {
 
         {/* Controls */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
-          style={{ display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 36 }}>
+          style={{ marginBottom: 36 }}>
 
-          {/* Row 1 — sources */}
-          <CollapsibleSection label="Sources" isOpen={openSections.sources} onToggle={() => toggleSection('sources')}>
-            {SOURCES.map(s => (
-              <SourceChip
-                key={s.id}
-                source={s}
-                enabled={enabled.has(s.id)}
-                onToggle={() => toggleSource(s.id)}
-              />
-            ))}
-          </CollapsibleSection>
-
-          {/* Row 2 — filter modes */}
-          <CollapsibleSection label="Filter" isOpen={openSections.filter} onToggle={() => toggleSection('filter')}>
-            {[
-                { mode: 'ai',      label: 'AI / ML only' },
-                { mode: 'it',      label: 'IT only' },
-                { mode: 'all',     label: 'All articles' },
-                { mode: 'hearted', label: '♥ Saved', count: heartedCount },
-              ].map(({ mode, label, count }) => (
-                <motion.button key={mode} whileTap={{ scale: 0.93 }} onClick={() => setFilterMode(mode)}
-                  style={{
-                    padding: '7px 16px', borderRadius: 20, cursor: 'pointer',
-                    background: filterMode === mode
-                      ? (mode === 'hearted' ? 'linear-gradient(135deg, #c0524a, #e07060)' : 'linear-gradient(135deg, #7a5230, #b07850)')
-                      : 'rgba(110,78,42,0.05)',
-                    border: filterMode === mode ? 'none' : '1px solid rgba(110,78,42,0.14)',
-                    color: filterMode === mode ? '#f7f2ea' : (mode === 'hearted' ? '#c0524a' : '#9b7c5a'),
-                    fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
-                  }}>
-                  {label}{count > 0 && mode === 'hearted' ? ` ${count}` : ''}
-                </motion.button>
-              ))}
-          </CollapsibleSection>
-
-          {/* Row 3 — sort + refresh */}
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-            <CollapsibleSection label="Sort" isOpen={openSections.sort} onToggle={() => toggleSection('sort')}>
-              {[
-                  { mode: 'newest', label: 'Newest first' },
-                  { mode: 'saved',  label: '♥ Saved first' },
-                ].map(({ mode, label }) => (
-                  <motion.button key={mode} whileTap={{ scale: 0.93 }} onClick={() => setSortMode(mode)}
-                    style={{
-                      padding: '7px 16px', borderRadius: 20, cursor: 'pointer',
-                      background: sortMode === mode ? 'linear-gradient(135deg, #7a5230, #b07850)' : 'rgba(110,78,42,0.05)',
-                      border: sortMode === mode ? 'none' : '1px solid rgba(110,78,42,0.14)',
-                      color: sortMode === mode ? '#f7f2ea' : '#9b7c5a',
-                      fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
-                    }}>
-                    {label}
-                  </motion.button>
-                ))}
-            </CollapsibleSection>
+          {/* Filters toggle + refresh */}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <motion.button
+              whileTap={{ scale: 0.93 }}
+              onClick={() => setFiltersOpen(o => !o)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '7px 16px', borderRadius: 20, cursor: 'pointer',
+                background: filtersOpen ? 'linear-gradient(135deg, #7a5230, #b07850)' : 'rgba(110,78,42,0.05)',
+                border: filtersOpen ? 'none' : '1px solid rgba(110,78,42,0.14)',
+                color: filtersOpen ? '#f7f2ea' : '#9b7c5a',
+                fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              <SlidersHorizontal size={13} />
+              Filters
+            </motion.button>
 
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setRefreshKey(k => k + 1)}
               style={{
                 marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
-                marginTop: -7,
                 padding: '7px 16px', borderRadius: 20, cursor: 'pointer',
                 background: 'rgba(110,78,42,0.05)', border: '1px solid rgba(110,78,42,0.14)',
                 color: '#9b7c5a', fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
@@ -385,6 +320,72 @@ export default function NewsFilterPage() {
               Refresh
             </motion.button>
           </div>
+
+          {/* Collapsible filters panel */}
+          <AnimatePresence initial={false}>
+            {filtersOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingTop: 20 }}>
+                  <FilterGroup label="Sources">
+                    {SOURCES.map(s => (
+                      <SourceChip
+                        key={s.id}
+                        source={s}
+                        enabled={enabled.has(s.id)}
+                        onToggle={() => toggleSource(s.id)}
+                      />
+                    ))}
+                  </FilterGroup>
+
+                  <FilterGroup label="Filter">
+                    {[
+                        { mode: 'ai',      label: 'AI / ML only' },
+                        { mode: 'it',      label: 'IT only' },
+                        { mode: 'all',     label: 'All articles' },
+                        { mode: 'hearted', label: '♥ Saved', count: heartedCount },
+                      ].map(({ mode, label, count }) => (
+                        <motion.button key={mode} whileTap={{ scale: 0.93 }} onClick={() => setFilterMode(mode)}
+                          style={{
+                            padding: '7px 16px', borderRadius: 20, cursor: 'pointer',
+                            background: filterMode === mode
+                              ? (mode === 'hearted' ? 'linear-gradient(135deg, #c0524a, #e07060)' : 'linear-gradient(135deg, #7a5230, #b07850)')
+                              : 'rgba(110,78,42,0.05)',
+                            border: filterMode === mode ? 'none' : '1px solid rgba(110,78,42,0.14)',
+                            color: filterMode === mode ? '#f7f2ea' : (mode === 'hearted' ? '#c0524a' : '#9b7c5a'),
+                            fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
+                          }}>
+                          {label}{count > 0 && mode === 'hearted' ? ` ${count}` : ''}
+                        </motion.button>
+                      ))}
+                  </FilterGroup>
+
+                  <FilterGroup label="Sort">
+                    {[
+                        { mode: 'newest', label: 'Newest first' },
+                        { mode: 'saved',  label: '♥ Saved first' },
+                      ].map(({ mode, label }) => (
+                        <motion.button key={mode} whileTap={{ scale: 0.93 }} onClick={() => setSortMode(mode)}
+                          style={{
+                            padding: '7px 16px', borderRadius: 20, cursor: 'pointer',
+                            background: sortMode === mode ? 'linear-gradient(135deg, #7a5230, #b07850)' : 'rgba(110,78,42,0.05)',
+                            border: sortMode === mode ? 'none' : '1px solid rgba(110,78,42,0.14)',
+                            color: sortMode === mode ? '#f7f2ea' : '#9b7c5a',
+                            fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
+                          }}>
+                          {label}
+                        </motion.button>
+                      ))}
+                  </FilterGroup>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Stats bar */}

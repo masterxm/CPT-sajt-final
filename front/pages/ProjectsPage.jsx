@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { ExternalLink, GitBranch, ArrowUpRight, Layers } from 'lucide-react'
+import { ExternalLink, GitBranch, ArrowUpRight } from 'lucide-react'
 import { PROJECTS, STATUS_STYLE } from '../data/projects'
 
 // ── Card thumbnail ────────────────────────────────────────────────────────

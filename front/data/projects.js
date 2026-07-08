@@ -5,12 +5,28 @@ export const STATUS_STYLE = {
   'Archived':       { bg: 'rgba(130,110,90,0.12)',  border: 'rgba(130,110,90,0.25)',  text: '#9b8060', dot: '#7a6040' },
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// HOW TO ADD OR REPLACE A PROJECT
+// Each entry needs:
+//   title / desc / longDesc — desc shows on cards, longDesc is reserved for
+//     detail pages
+//   tags       — tech stack chips shown on the card
+//   category   — 'Web App' | 'Desktop' | 'Mobile' | 'Automation' | ...
+//   demoUrl    — link opened by the "Live Demo" button (internal route or
+//     external URL), or null for "Demo coming soon"
+//   status     — must be a key of STATUS_STYLE above
+//   accent     — card accent color; visual — [from, to] thumbnail gradient
+//   slug       — optional; gives the project its own /projects/<slug> page
+//     (see front/pages/ProjectDetail.jsx)
+// Entries marked PLACEHOLDER below are templates — overwrite them with real
+// projects as they ship.
+// ─────────────────────────────────────────────────────────────────────────
 export const PROJECTS = [
   {
     id: 0,
     title: 'CPT Tajmer',
-    desc: 'Pomodoro tajmer — 25 min fokus, 5 min pauza, duga pauza na svakih 4 runde.',
-    longDesc: 'Pomodoro tehnika za produktivnost: fokusiraj se 25 minuta, odmori 5 minuta. Vizuelni krug napretka, zvučni signal, automatsko smenjivanje modova.',
+    desc: 'Pomodoro timer — 25 min focus, 5 min break, with a long break every 4 rounds.',
+    longDesc: 'The Pomodoro productivity technique: focus for 25 minutes, rest for 5. Visual progress ring, audio cue, and automatic mode switching.',
     tags: ['React', 'Vite', 'Web Audio API'],
     category: 'Web App',
     demoUrl: '/apps/cpt-tajmer',
@@ -21,7 +37,7 @@ export const PROJECTS = [
   },
   {
     id: 1,
-    title: 'Serbian AI News Filter',
+    title: 'Relevant Serbian News',
     desc: 'Aggregates Serbian news RSS feeds and surfaces only AI & machine learning coverage.',
     longDesc: 'Live RSS aggregator across five Serbian news sources with real-time filtering for artificial intelligence and machine learning articles.',
     tags: ['React', 'RSS', 'Vite'],
@@ -47,6 +63,7 @@ export const PROJECTS = [
     visual: ['#ece0d4', '#e4d8c8'],
     slug: 'beta',
   },
+  // PLACEHOLDER — replace with a real project when ready
   {
     id: 3,
     title: 'Project Gamma',
@@ -60,6 +77,7 @@ export const PROJECTS = [
     accent: '#5a7a5a',
     visual: ['#dce8dc', '#d4e0d4'],
   },
+  // PLACEHOLDER — replace with a real project when ready
   {
     id: 4,
     title: 'Project Delta',
@@ -73,6 +91,7 @@ export const PROJECTS = [
     accent: '#b07030',
     visual: ['#f0e4cc', '#e8dcc0'],
   },
+  // PLACEHOLDER — replace with a real project when ready
   {
     id: 5,
     title: 'Project Epsilon',
@@ -86,6 +105,7 @@ export const PROJECTS = [
     accent: '#4a6a8a',
     visual: ['#d8e4f0', '#d0dce8'],
   },
+  // PLACEHOLDER — replace with a real project when ready
   {
     id: 6,
     title: 'Project Zeta',
