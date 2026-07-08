@@ -1,53 +1,17 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link, useLocation } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 
 const links = [
   { label: 'Services',  href: '/#services',  anchor: true },
-  { label: 'Projects',  href: '/projects',    anchor: false },
   { label: 'Apps',      href: '/apps',        anchor: false },
   { label: 'Contact',   href: '/contact',     anchor: false },
 ]
 
-const MotionLink = motion.create(Link)
-
-function MagButton({ to, children }) {
-  const ref = useRef(null)
-  const [pos, setPos] = useState({ x: 0, y: 0 })
-
-  const onMove = (e) => {
-    const r = ref.current.getBoundingClientRect()
-    setPos({ x: e.clientX - r.left - r.width / 2, y: e.clientY - r.top - r.height / 2 })
-  }
-  const onLeave = () => setPos({ x: 0, y: 0 })
-
-  return (
-    <MotionLink
-      ref={ref}
-      to={to}
-      onMouseMove={onMove}
-      onMouseLeave={onLeave}
-      animate={{ x: pos.x * 0.25, y: pos.y * 0.25 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-      style={{
-        display: 'inline-block', padding: '10px 24px', borderRadius: 8,
-        background: 'linear-gradient(135deg, #7a5230 0%, #b07850 100%)',
-        fontSize: 14, fontWeight: 700, color: '#f7f2ea', cursor: 'pointer',
-        fontFamily: "'Inter', sans-serif",
-        boxShadow: '0 2px 12px rgba(122, 82, 48, 0.22)',
-      }}
-    >
-      {children}
-    </MotionLink>
-  )
-}
-
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
-  const { pathname } = useLocation()
-  const isNewsPage = pathname === '/projects/alpha'
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 50)
@@ -80,15 +44,6 @@ export default function Navbar() {
           }}>
             CPT<span style={{ color: '#7a5230' }}>.</span>
           </Link>
-          {isNewsPage && (
-            <span style={{
-              fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 600, fontSize: 16,
-              color: '#7a5230', borderLeft: '1px solid rgba(110, 78, 42, 0.25)', paddingLeft: 14,
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            }}>
-              Relevant Serbian News
-            </span>
-          )}
         </div>
 
         <nav style={{ display: 'flex', gap: 38, alignItems: 'center' }}
@@ -96,7 +51,6 @@ export default function Navbar() {
           {links.map(l => (
             <NavLink key={l.label} href={l.href} anchor={l.anchor}>{l.label}</NavLink>
           ))}
-          <MagButton to="/contact">Get Started</MagButton>
         </nav>
 
         <button
@@ -132,13 +86,6 @@ export default function Navbar() {
                   }
                 </motion.div>
               ))}
-              <Link to="/contact" onClick={() => setOpen(false)} style={{
-                marginTop: 16, display: 'block', padding: '14px 0', textAlign: 'center',
-                borderRadius: 8, background: 'linear-gradient(135deg, #7a5230, #b07850)',
-                fontSize: 16, fontWeight: 700, color: '#f7f2ea',
-              }}>
-                Get Started
-              </Link>
             </div>
           </motion.div>
         )}

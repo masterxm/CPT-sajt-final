@@ -1,8 +1,9 @@
 import { Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowRight, LayoutGrid } from 'lucide-react'
+import { ArrowRight, LayoutGrid, Newspaper } from 'lucide-react'
 import { APPS } from '../apps'
+import NewsFilterPage from './NewsFilterPage'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -120,6 +121,37 @@ export default function AppsPage() {
           )}
         </div>
       </section>
+
+      {/* ── Relevant Serbian News ─────────────────────────────────────── */}
+      <div style={{ borderTop: '1px solid rgba(110, 78, 42, 0.1)' }}>
+        <div className="container" style={{ paddingTop: 64 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            style={{ textAlign: 'center', marginBottom: 8 }}
+          >
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: 'rgba(122, 82, 48, 0.08)', border: '1px solid rgba(122, 82, 48, 0.2)',
+              borderRadius: 100, padding: '6px 16px', marginBottom: 20,
+            }}>
+              <Newspaper size={12} color="#7a5230" />
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#7a5230', letterSpacing: 0.5, fontFamily: "'Inter', sans-serif" }}>
+                Live Feed
+              </span>
+            </div>
+            <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', color: '#2a1a0a', marginBottom: 12 }}>
+              Relevant <span className="grad-text">Serbian News</span>
+            </h2>
+            <p style={{ fontSize: 16, color: '#9b7c5a', maxWidth: 480, margin: '0 auto', lineHeight: 1.75, fontFamily: "'Inter', sans-serif" }}>
+              AI & machine learning coverage aggregated from Serbian news sources.
+            </p>
+          </motion.div>
+        </div>
+        <NewsFilterPage />
+      </div>
     </div>
   )
 }
