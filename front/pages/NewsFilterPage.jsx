@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, RefreshCw, ExternalLink, Rss, AlertCircle, Heart } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { RefreshCw, ExternalLink, AlertCircle, Heart, ChevronDown } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 // ── Sources (colors only — data comes from Supabase) ─────────────────────
@@ -68,6 +67,46 @@ function SourceChip({ source, enabled, onToggle }) {
       }} />
       {source.name}
     </motion.button>
+  )
+}
+
+function CollapsibleSection({ label, isOpen, onToggle, children }) {
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+          fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
+          color: '#b09870', fontFamily: "'Inter', sans-serif",
+        }}
+      >
+        <motion.span
+          animate={{ rotate: isOpen ? 0 : -90 }}
+          transition={{ duration: 0.2 }}
+          style={{ display: 'inline-flex', alignItems: 'center' }}
+        >
+          <ChevronDown size={13} />
+        </motion.span>
+        {label}
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 10 }}>
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   )
 }
 
@@ -184,6 +223,10 @@ export default function NewsFilterPage() {
   const [filterMode, setFilterMode] = useState('ai')
   const [sortMode, setSortMode]     = useState('newest')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [openSections, setOpenSections] = useState({ sources: false, filter: false, sort: false })
+
+  const toggleSection = key =>
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
 
   const toggleHeart = async (article) => {
     const newVal = !article.hearted
@@ -265,75 +308,25 @@ export default function NewsFilterPage() {
     <section style={{ padding: '100px 0 120px', minHeight: '100vh' }}>
       <div className="container" style={{ maxWidth: 960 }}>
 
-        {/* Back link */}
-        <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.35 }}
-          style={{ marginBottom: 40 }}>
-          <Link to="/projects" style={{
-            display: 'inline-flex', alignItems: 'center', gap: 7,
-            fontSize: 13, fontWeight: 600, color: '#9b7c5a', fontFamily: "'Inter', sans-serif",
-          }}
-            onMouseEnter={e => e.currentTarget.style.color = '#2a1a0a'}
-            onMouseLeave={e => e.currentTarget.style.color = '#9b7c5a'}
-          >
-            <ArrowLeft size={14} /> All Projects
-          </Link>
-        </motion.div>
-
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-          style={{ marginBottom: 36 }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 7,
-            background: 'rgba(122, 82, 48, 0.08)', border: '1px solid rgba(122, 82, 48, 0.2)',
-            borderRadius: 100, padding: '5px 14px', marginBottom: 18,
-          }}>
-            <Rss size={12} color="#7a5230" />
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#7a5230', fontFamily: "'Inter', sans-serif", letterSpacing: 0.4 }}>
-              Live RSS Aggregator
-            </span>
-          </div>
-          <h1 style={{ fontSize: 'clamp(28px, 4vw, 48px)', color: '#2a1a0a', marginBottom: 12 }}>
-            Serbian AI &amp; ML News
-          </h1>
-          <p style={{ fontSize: 15, color: '#9b7c5a', lineHeight: 1.7, maxWidth: 540, fontFamily: "'Inter', sans-serif" }}>
-            Aggregates multiple Serbian news sources in real time and surfaces only the articles covering artificial intelligence and machine learning.
-          </p>
-        </motion.div>
-
         {/* Controls */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
           style={{ display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 36 }}>
 
           {/* Row 1 — sources */}
-          <div>
-            <div style={{
-              fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
-              color: '#b09870', fontFamily: "'Inter', sans-serif", marginBottom: 10,
-            }}>
-              Sources
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {SOURCES.map(s => (
-                <SourceChip
-                  key={s.id}
-                  source={s}
-                  enabled={enabled.has(s.id)}
-                  onToggle={() => toggleSource(s.id)}
-                />
-              ))}
-            </div>
-          </div>
+          <CollapsibleSection label="Sources" isOpen={openSections.sources} onToggle={() => toggleSection('sources')}>
+            {SOURCES.map(s => (
+              <SourceChip
+                key={s.id}
+                source={s}
+                enabled={enabled.has(s.id)}
+                onToggle={() => toggleSource(s.id)}
+              />
+            ))}
+          </CollapsibleSection>
 
           {/* Row 2 — filter modes */}
-          <div>
-            <div style={{
-              fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
-              color: '#b09870', fontFamily: "'Inter', sans-serif", marginBottom: 10,
-            }}>
-              Filter
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {[
+          <CollapsibleSection label="Filter" isOpen={openSections.filter} onToggle={() => toggleSection('filter')}>
+            {[
                 { mode: 'ai',      label: 'AI / ML only' },
                 { mode: 'it',      label: 'IT only' },
                 { mode: 'all',     label: 'All articles' },
@@ -352,20 +345,12 @@ export default function NewsFilterPage() {
                   {label}{count > 0 && mode === 'hearted' ? ` ${count}` : ''}
                 </motion.button>
               ))}
-            </div>
-          </div>
+          </CollapsibleSection>
 
           {/* Row 3 — sort + refresh */}
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div>
-              <div style={{
-                fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase',
-                color: '#b09870', fontFamily: "'Inter', sans-serif", marginBottom: 10,
-              }}>
-                Sort
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {[
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <CollapsibleSection label="Sort" isOpen={openSections.sort} onToggle={() => toggleSection('sort')}>
+              {[
                   { mode: 'newest', label: 'Newest first' },
                   { mode: 'saved',  label: '♥ Saved first' },
                 ].map(({ mode, label }) => (
@@ -380,14 +365,14 @@ export default function NewsFilterPage() {
                     {label}
                   </motion.button>
                 ))}
-              </div>
-            </div>
+            </CollapsibleSection>
 
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setRefreshKey(k => k + 1)}
               style={{
                 marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
+                marginTop: -7,
                 padding: '7px 16px', borderRadius: 20, cursor: 'pointer',
                 background: 'rgba(110,78,42,0.05)', border: '1px solid rgba(110,78,42,0.14)',
                 color: '#9b7c5a', fontSize: 13, fontWeight: 600, fontFamily: "'Inter', sans-serif",
