@@ -1,7 +1,18 @@
 import { lazy } from 'react'
-import { ChefHat, Timer } from 'lucide-react'
+import { ChefHat, Timer, Newspaper } from 'lucide-react'
 
 export const APPS = [
+  {
+    slug:        'serbian-news',
+    name:        'Relevant Serbian News',
+    tagline:     'AI & tech coverage from Serbian sources',
+    description: 'Aggregates Serbian news RSS feeds and surfaces only AI & machine learning coverage from N1, Blic, Telegraf, and more.',
+    icon:        Newspaper,
+    color:       '#8b6914',
+    gradient:    'linear-gradient(135deg, #8b6914, #b07850)',
+    badge:       'Live',
+    component:   lazy(() => import('../pages/NewsFilterPage')),
+  },
   {
     slug:        'cpt-kuvar',
     name:        'CPT Kuvar',
