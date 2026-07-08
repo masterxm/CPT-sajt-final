@@ -3,6 +3,23 @@ import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Code2, Layers, Zap, Globe, BarChart3, Shield } from 'lucide-react'
 
+// ── Random quote (ZenQuotes) ───────────────────────────────────────────────
+const FALLBACK = 'Custom software for companies that refuse to settle for off-the-shelf.'
+
+function useRandomQuote() {
+  const [quote, setQuote] = useState({ content: FALLBACK, author: null })
+  useEffect(() => {
+    fetch('/quote-api/random')
+      .then(r => { if (!r.ok) throw new Error(); return r.json() })
+      .then(data => {
+        const d = Array.isArray(data) ? data[0] : data
+        if (d?.q) setQuote({ content: d.q, author: d.a || null })
+      })
+      .catch(() => {})
+  }, [])
+  return quote
+}
+
 // ── Capability ticker ──────────────────────────────────────────────────────
 const CAPS = [
   'Custom Software', 'Web Platforms', 'System Integration',
@@ -139,6 +156,7 @@ function ServiceCard({ item }) {
 
 // ── Home ───────────────────────────────────────────────────────────────────
 export default function Home() {
+  const quote      = useRandomQuote()
   const heroRef    = useRef(null)
   const spotRef    = useRef(null)
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
@@ -243,19 +261,30 @@ export default function Home() {
               <RotatingWord />
             </motion.h1>
 
-            {/* Tagline */}
-            <motion.p
+            {/* Tagline / quote */}
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.32 }}
-              style={{
-                fontSize: 'clamp(16px, 1.9vw, 20px)',
-                fontFamily: "'Inter', sans-serif",
-                color: '#9b7c5a', maxWidth: 500, margin: '0 auto 52px', lineHeight: 1.7,
-              }}
+              style={{ maxWidth: 500, margin: '0 auto 52px', textAlign: 'center' }}
             >
-              Custom software for companies that refuse to settle for off-the-shelf.
-            </motion.p>
+              <p style={{
+                fontSize: 'clamp(15px, 1.8vw, 19px)',
+                fontFamily: "'Inter', sans-serif",
+                color: '#9b7c5a', lineHeight: 1.7, margin: 0,
+                fontStyle: quote.author ? 'italic' : 'normal',
+              }}>
+                "{quote.content}"
+              </p>
+              {quote.author && (
+                <p style={{
+                  fontSize: 13, fontFamily: "'Inter', sans-serif",
+                  color: '#b09870', marginTop: 8,
+                }}>
+                  — {quote.author}
+                </p>
+              )}
+            </motion.div>
 
             {/* CTAs */}
             <motion.div

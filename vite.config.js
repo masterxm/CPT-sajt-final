@@ -6,10 +6,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/quote-api': {
-        target: 'https://api.quotable.io',
+        target: 'https://zenquotes.io',
         changeOrigin: true,
-        secure: false,
-        rewrite: path => path.replace(/^\/quote-api/, ''),
+        secure: true,
+        rewrite: path => path.replace(/^\/quote-api/, '/api'),
       },
       '/news/n1': {
         target: 'https://n1info.rs',

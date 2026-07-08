@@ -13,6 +13,6 @@
 
 [[redirects]]
   from = "/quote-api/*"
-  to = "https://api.quotable.io/:splat"
+  to = "https://zenquotes.io/api/:splat"
   status = 200
   force = true
