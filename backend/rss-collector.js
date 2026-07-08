@@ -237,5 +237,6 @@ export default async () => {
 }
 
 export const config = {
-  schedule: '0 5 * * *',
+  // Temporary test schedule: 15:58 UTC = 17:58 CEST. Revert to '0 4 * * *' (6:00 CEST) after testing.
+  schedule: '58 15 * * *',
 }
