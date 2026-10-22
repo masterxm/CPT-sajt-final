@@ -1,5 +1,5 @@
 import { lazy } from 'react'
-import { ChefHat, Timer, Newspaper } from 'lucide-react'
+import { ChefHat, Timer, Newspaper, Bike } from 'lucide-react'
 
 export const APPS = [
   {
@@ -34,5 +34,16 @@ export const APPS = [
     gradient:    'linear-gradient(135deg, #5a4a8a, #6a5a9a)',
     badge:       'New',
     component:   lazy(() => import('./cpt-tajmer')),
+  },
+  {
+    slug:        'cpt-motori',
+    name:        'CPT Motori',
+    tagline:     'Your motorcycle search dashboard',
+    description: 'Paste a PolovniAutomobili search and keep the motorcycles worth another look in one focused dashboard.',
+    icon:        Bike,
+    color:       '#b48718',
+    gradient:    'linear-gradient(135deg, #8c6710, #d3a52a)',
+    badge:       'New',
+    component:   lazy(() => import('./cpt-motori')),
   },
 ]
